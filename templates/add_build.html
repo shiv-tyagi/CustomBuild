@@ -47,7 +47,13 @@
     <div class="container-fluid px-3 py-3">
         <div class="card">
             <div class="card-header">
-              <span class="d-flex align-items-center"><i class="bi bi-hammer me-2"></i><strong>ADD NEW BUILD</strong></span>   
+                <div class="d-flex justify-content-between">
+                    <span class="d-flex align-items-center"><i class="bi bi-hammer me-2"></i><strong>ADD NEW BUILD</strong></span>   
+                    <div class="input-group w-25">
+                        <input class="form-control" type="text" placeholder="Filter options" aria-label="filter options">
+                    </div>
+                </div>
+                
             </div>
             <div class="card-body">
               <form id="build-form" action="/generate" method="post">
