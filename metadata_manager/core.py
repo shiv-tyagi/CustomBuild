@@ -6,6 +6,7 @@ import ap_git
 import json
 import jsonschema
 import subprocess
+from typing import Callable
 from . import exceptions as ex
 from threading import Lock
 from utils import TaskRunner
@@ -177,13 +178,18 @@ class VersionsFetcher:
 
     __singleton = None
 
-    def __init__(self, remotes_json_path: str):
+    def __init__(self, remotes_json_path: str,
+                 post_metadata_reload_callback: Callable[..., object]):
         """
         Initializes the VersionsFetcher instance
         with a given remotes.json path.
 
         Parameters:
             remotes_json_path (str): Path to the remotes.json file.
+            post_metadata_reload_callback (Callable):
+                Function to call after reloading remotes.json.
+                This is used to process and propagate the updated
+                metadata at wherever needed.
 
         Raises:
             TooManyInstancesError: If an instance of this class already exists,
@@ -202,6 +208,7 @@ class VersionsFetcher:
             (self.fetch_whitelisted_tags, 1200),
         )
         self.__task__runner = TaskRunner(tasks=tasks)
+        self.__post_meta_refresh_cb = post_metadata_reload_callback
         VersionsFetcher.__singleton = self
 
     def get_all_remotes_info(self) -> list[RemoteInfo]:
@@ -345,6 +352,9 @@ class VersionsFetcher:
             # validate schema
             jsonschema.validate(instance=versions_metadata, schema=schema)
             self.__set_versions_metadata(versions_metadata=versions_metadata)
+
+        # Version metadata post-refresh callback
+        self.__post_meta_refresh_cb()
 
     def __set_versions_metadata(self, versions_metadata: list) -> None:
         """
