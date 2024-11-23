@@ -73,15 +73,10 @@ except FileNotFoundError:
         recurse_submodules=True,
     )
 
-ap_src_metadata_fetcher = metadata_manager.APSourceMetadataFetcher(
-    ap_repo_path=sourcedir
-)
-versions_fetcher = metadata_manager.VersionsFetcher(
-    remotes_json_path=os.path.join(basedir, 'configs', 'remotes.json')
-)
+def post_versions_refresh_actions():
+    sync_remotes_with_ap_repo()
 
-def load_remotes():
-    versions_fetcher.reload_remotes_json()
+def sync_remotes_with_ap_repo():
     added_remotes = 0
     for remote_info in versions_fetcher.get_all_remotes_info():
         try:
@@ -94,6 +89,14 @@ def load_remotes():
             repo.remote_set_url(remote=remote_info.name, url=remote_info.url)
         added_remotes += 1
     app.logger.info(f"{added_remotes} remotes added to base repo")
+
+ap_src_metadata_fetcher = metadata_manager.APSourceMetadataFetcher(
+    ap_repo_path=sourcedir
+)
+versions_fetcher = metadata_manager.VersionsFetcher(
+    remotes_json_path=os.path.join(basedir, 'configs', 'remotes.json'),
+    post_metadata_reload_callback=post_versions_refresh_actions
+)
 
 def remove_directory_recursive(dirname):
     '''remove a directory recursively'''
@@ -404,7 +407,7 @@ try:
 except IOError:
     app.logger.info("No queue lock")
 
-load_remotes()
+versions_fetcher.reload_remotes_json()
 
 app.logger.info('Python version is: %s' % sys.version)
 
@@ -431,7 +434,7 @@ def refresh_remotes():
     if not token or token != auth_token:
         return "Unauthorized", 401
 
-    load_remotes()
+    versions_fetcher.reload_remotes_json()
     return "Successfully refreshed remotes", 200
 
 @app.route('/generate', methods=['GET', 'POST'])
