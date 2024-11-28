@@ -6,6 +6,10 @@ import ap_git
 import json
 import jsonschema
 import subprocess
+import enum
+import re
+import redis
+import pickle
 from typing import Callable
 from . import exceptions as ex
 from threading import Lock
@@ -420,3 +424,189 @@ class VersionsFetcher:
     @staticmethod
     def get_singleton():
         return VersionsFetcher.__singleton
+
+
+class BuildState(enum.Enum):
+    PENDING = 0
+    RUNNING = 1
+    SUCCESS = 2
+    FAILURE = 3
+    ERROR = 4
+
+
+class BuildProgress:
+    def __init__(
+        self,
+        state: BuildState,
+        percent: int    
+    ) -> None:
+        self.state = state
+        self.percent = percent
+
+
+class BuildInfo:
+    def __init__(self,
+                 id: str,
+                 vehicle: str,
+                 remote: RemoteInfo,
+                 git_hash: str,
+                 selected_features: list,
+                 progress: BuildProgress,
+                 outdir: str,
+                 time_submitted: float) -> None:
+        self.id = id
+        self.vehicle = vehicle
+        self.remote = remote
+        self.git_hash = git_hash
+        self.selected_features = selected_features
+        self.progress = progress
+        self.outdir = outdir
+        self.time_submitted = time_submitted
+
+
+class BuildMetadataManager:
+    def __init__(self,
+                 redis_host: str = 'localhost',
+                 redis_port: str = 6379) -> None:
+        # Enforce singleton pattern by raising an error if
+        # an instance already exists.
+        if BuildMetadataManager.__singleton:
+            raise ex.TooManyInstancesError()
+
+        self.__redis_client = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+        self.__build_entry_prefix = "build_meta:"
+        self.__runner = TaskRunner(
+            (self.__update_running_build_progress_all, 3)
+        )
+
+    def __del__(self) -> None:
+        self.__redis_client.close()
+
+    def key_from_build_id(self, build_id: str):
+        return self.__build_entry_prefix + build_id
+
+    def build_id_from_key(self, key: str):
+        return key[len(self.__build_entry_prefix):]
+
+    def build_exists(self,
+                     build_id: str) -> bool:
+        return self.__redis_client.exists(self.key_from_build_id(build_id=build_id))
+
+    def add_build_info(self,
+                       build_info: BuildInfo,
+                       ttl_sec: int = 86400) -> None:
+        if self.build_exists(build_id=build_info.id):
+            raise ValueError(f"build with id {build_info.id} already exists")
+
+        self.__redis_client.set(
+            self.key_from_build_id(build_info.id),
+            pickle.dumps(build_info),
+            ex=ttl_sec
+        )
+
+    def get_build_info(self,
+                       build_id: str) -> BuildInfo:
+        key = self.key_from_build_id(build_id=build_id)
+        value = self.__redis_client.get(key)
+        return pickle.loads(value) if value else None
+
+    def __update_build_progress(self,
+                                build_id: str,
+                                progress: BuildProgress) -> None:
+        build_info = self.get_build_info(build_id=build_id)
+        build_info.progress = progress
+        self.__redis_client.set(
+            self.key_from_build_id(build_id=build_info.id),
+            pickle.dumps(build_info),
+            keepttl=True
+        )
+
+    def __update_build_progress_percent(self,
+                                        build_id: str,
+                                        percent: int) -> None:
+        state = self.get_build_info(build_id=build_id).progress.state
+        progress = BuildProgress(
+            percent=percent,
+            state=state
+        )
+        self.__update_build_progress(
+            build_id=build_id,
+            progress=progress
+        )
+
+    def update_build_progress_state(self,
+                                      build_id: str,
+                                      new_state: BuildState) -> None:
+        percent = self.get_build_info(build_id=build_id).progress.percent
+        progress = BuildProgress(
+            percent=percent,
+            state=new_state
+        )
+        self.__update_build_progress(
+            build_id=build_id,
+            progress=progress
+        )
+
+    def __get_all_build_ids(self) -> list:
+        keys = self.__redis_client.keys(f"{self.__build_entry_prefix}*")
+        return [
+            self.build_id_from_key(key.decode('utf-8'))
+            for key in keys
+        ]
+
+    def __get_running_build_ids(self) -> list:
+        return [
+            build_id for build_id in self.__get_all_build_ids()
+            if self.get_build_info(build_id=build_id).progress.state == BuildState.RUNNING
+        ]
+
+    def __calc_build_progress_percent(self, build_id: str) -> int:
+        build_info = self.get_build_info(build_id=build_id)
+
+        if build_info is None:
+            raise Exception(f"No Build found with id {build_id}")
+
+        if build_info.progress.state in [BuildState.PENDING, BuildState.ERROR]:
+            return 0
+
+        if build_info.progress.state == BuildState.SUCCESS:
+            return 100
+
+        log_file_path = os.path.join(build_info.outdir, 'build.log')
+        logger.debug('Opening ' + log_file_path)
+        with open(log_file_path, encoding='utf-8') as f:
+            build_log = f.read()
+
+        compiled_regex = re.compile(r'(\[\D*(\d+)\D*\/\D*(\d+)\D*\])')
+        all_matches = compiled_regex.findall(build_log)
+
+        if (len(all_matches) < 1):
+            return 0
+
+        completed_steps, total_steps = all_matches[-1][1:]
+        if (int(total_steps) < 20):
+            # these steps are just little compilation and linking
+            # that happens at initialisation, these do not contribute 
+            # significant percentage to overall build progress
+            return 1
+
+        if (int(total_steps) < 200):
+            # these steps are for building the OS
+            # we give this phase 4% weight in the whole build progress
+            return (int(completed_steps) * 4 // int(total_steps)) + 1
+
+        # these steps are the major part of the build process
+        # we give 95% of weight to these
+        return (int(completed_steps) * 95 // int(total_steps)) + 5
+
+    def __update_running_build_progress_all(self):
+        for build_id in self.__get_running_build_ids():
+            percent = self.__calc_build_progress_percent(build_id=build_id)
+            self.__update_build_progress_percent(
+                build_id=build_id,
+                percent=percent
+            )
+
+    @staticmethod
+    def get_singleton():
+        return BuildMetadataManager.__singleton
