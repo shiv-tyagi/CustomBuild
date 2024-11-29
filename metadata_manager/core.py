@@ -535,8 +535,8 @@ class BuildMetadataManager:
         )
 
     def update_build_progress_state(self,
-                                      build_id: str,
-                                      new_state: BuildState) -> None:
+                                    build_id: str,
+                                    new_state: BuildState) -> None:
         percent = self.get_build_info(build_id=build_id).progress.percent
         progress = BuildProgress(
             percent=percent,
@@ -610,3 +610,10 @@ class BuildMetadataManager:
     @staticmethod
     def get_singleton():
         return BuildMetadataManager.__singleton
+
+
+class RateLimiter:
+    def __init__(self):
+        return
+    
+
