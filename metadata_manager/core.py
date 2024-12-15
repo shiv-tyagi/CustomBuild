@@ -137,6 +137,27 @@ class APSourceMetadataFetcher:
         )
         return build_options
 
+    def get_defines_at_commit(self, remote: str,
+                              commit_ref: str) -> set:
+        """
+        Retrieves a set of feature defines corresponding to the features
+        available at a specified commit.
+
+        Parameters:
+            remote (str): The name of the remote repository.
+            commit_ref (str): The commit reference to check out.
+
+        Returns:
+            list: A list of defines.
+        """
+        return {
+            feature.define
+            for feature in self.get_build_options_at_commit(
+                remote=remote,
+                commit_ref=commit_ref
+            )
+        }
+
     @staticmethod
     def get_singleton():
         return APSourceMetadataFetcher.__singleton
@@ -226,6 +247,21 @@ class VersionsFetcher:
             )
             for remote in self.__get_versions_metadata()
         ]
+
+    def get_remote_info(self, remote_name: str) -> RemoteInfo:
+        """
+        Return the RemoteInfo for the given remote name, None otherwise.
+
+        Returns:
+            RemoteInfo: The remote information object.
+        """
+        return next(
+            (
+                remote for remote in self.get_all_remotes_info()
+                if remote.name == remote_name
+            ),
+            None
+        )
 
     def get_versions_for_vehicle(self, vehicle_name: str) -> list[VersionInfo]:
         """
