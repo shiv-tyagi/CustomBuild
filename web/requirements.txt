@@ -5,3 +5,4 @@ redis
 future
 pexpect
 empy==3.3.4
+gunicorn==21.1
