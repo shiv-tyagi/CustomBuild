@@ -2,3 +2,6 @@ flask
 requests
 jsonschema
 redis
+future
+pexpect
+empy==3.3.4
