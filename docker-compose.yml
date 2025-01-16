@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7.4.2-alpine
+    restart: always
+    volumes:
+      - ./base/redis_data:/data:rw
+    ports:
+      - "6379:6379"
+    command: redis-server
+
+  app:
+    build:
+      context: .
+      dockerfile: ./web/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GUNICORN_CMD_ARGS="--bind=0.0.0.0:8080"
+      - BASEDIR=/base
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./base:/base:rw
+    depends_on:
+      - redis
+    ports:
+      - "8080:8080"
