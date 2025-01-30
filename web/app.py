@@ -22,7 +22,7 @@ dictConfig({
         'formatter': 'default'
     }},
     'root': {
-        'level': 'DEBUG',
+        'level': os.getenv('LOG_LEVEL', default='INFO'),
         'handlers': ['wsgi']
     }
 })
