@@ -54,6 +54,25 @@ def fetch_tags_from_github():
     return tags_objs
 
 
+def fetch_commid_id_from_github(ref):
+    url = f'https://api.github.com/repos/ardupilot/ardupilot/commits/{ref}'
+    headers = {
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Accept': 'application/vnd.github+json'
+    }
+    response = requests.get(url=url, headers=headers)
+    if response.status_code != 200:
+        print(response.text)
+        print(url)
+        raise Exception(
+            "Couldn't fetch tags from github server. "
+            f"Got status code {response.status_code}"
+        )
+
+    r_json = response.json()
+    return r_json['sha']
+
+
 def remove_duplicate_entries(releases):
     temp = {}
     for release in releases:
@@ -70,7 +89,7 @@ def remove_duplicate_entries(releases):
 
 def construct_vehicle_versions_list(vehicle, ap_source_subdir,
                                     fw_server_vehicle_sdir,
-                                    tag_filter_exps, tags):
+                                    tag_filter_exps, tags, master_commit_id):
     ret = []
     for tag_info in tags:
         tag = tag_info['ref'].replace('refs/tags/', '')
@@ -138,7 +157,7 @@ def construct_vehicle_versions_list(vehicle, ap_source_subdir,
         'ap_build_artifacts_url': (
             f'https://firmware.ardupilot.org/{fw_server_vehicle_sdir}/latest'
         ),
-        'commit_reference': 'refs/heads/master'
+        'commit_reference': master_commit_id
     })
 
     return {
@@ -151,6 +170,7 @@ def run(base_dir, remote_name):
     remotes_json_path = os.path.join(base_dir, 'configs', 'remotes.json')
 
     tags = fetch_tags_from_github()
+    master_commit_id = fetch_commid_id_from_github("heads/master")
     vehicles = []
 
     vehicles.append(construct_vehicle_versions_list(
@@ -161,7 +181,8 @@ def run(base_dir, remote_name):
             "(ArduCopter-(beta-4.3|beta|stable))",
             "(Copter-(\d+\.\d+\.\d+))"  # noqa
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     vehicles.append(construct_vehicle_versions_list(
@@ -172,7 +193,8 @@ def run(base_dir, remote_name):
             "(ArduPlane-(beta-4.3|beta|stable))",
             "(Plane-(\d+\.\d+\.\d+))"  # noqa
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     vehicles.append(construct_vehicle_versions_list(
@@ -183,7 +205,8 @@ def run(base_dir, remote_name):
             "(APMrover2-(beta-4.3|beta|stable))",
             "(Rover-(\d+\.\d+\.\d+))"  # noqa
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     vehicles.append(construct_vehicle_versions_list(
@@ -194,7 +217,8 @@ def run(base_dir, remote_name):
             "(ArduSub-(beta-4.3|beta|stable))",
             "(Sub-(\d+\.\d+\.\d+))"  # noqa
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     vehicles.append(construct_vehicle_versions_list(
@@ -205,7 +229,8 @@ def run(base_dir, remote_name):
             "(AntennaTracker-(beta-4.3|beta|stable))",
             "(Tracker-(\d+\.\d+\.\d+))"  # noqa
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     vehicles.append(construct_vehicle_versions_list(
@@ -215,7 +240,8 @@ def run(base_dir, remote_name):
         [
             "(Blimp-(beta-4.3|beta|stable|\d+\.\d+\.\d+))"  # noqa
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     vehicles.append(construct_vehicle_versions_list(
@@ -225,7 +251,8 @@ def run(base_dir, remote_name):
         [
             "(ArduCopter-(beta-4.3|beta|stable)-heli)"
         ],
-        tags
+        tags,
+        master_commit_id,
     ))
 
     remotes_json = {
