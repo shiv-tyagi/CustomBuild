@@ -193,6 +193,13 @@ def generate():
         app.logger.error(ex)
         return render_template('error.html', ex=ex)
 
+@app.route('/log_headers')
+def log_headers():
+    headers = request.headers
+    for header, value in headers.items():
+        app.logger.info(f'{header}: {value}')
+    return 'Headers logged'
+
 @app.route('/add_build')
 def add_build():
     app.logger.info('Rendering add_build.html')
