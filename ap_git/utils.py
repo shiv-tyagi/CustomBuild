@@ -2,8 +2,6 @@ import logging
 import subprocess
 import os.path
 
-logger = logging.getLogger(__name__)
-
 
 def is_git_repo(path: str) -> bool:
     """
@@ -23,7 +21,7 @@ def is_git_repo(path: str) -> bool:
         return False
 
     cmd = ['git', 'rev-parse', '--is-inside-work-tree']
-    logger.debug(f"Running {' '.join(cmd)}")
+    logging.getLogger(__name__).debug(f"Running {' '.join(cmd)}")
     ret = subprocess.run(cmd, cwd=path, shell=False)
     return ret.returncode == 0
 

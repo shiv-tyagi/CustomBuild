@@ -5,8 +5,6 @@ from . import utils
 from . import exceptions as ex
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 
 class GitRepo:
     """
@@ -24,7 +22,8 @@ class GitRepo:
         """
         self.__set_local_path(local_path=local_path)
         self.__register_lock()
-        logger.info(f"GitRepo initialised for {local_path}")
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(f"GitRepo initialised for {local_path}")
 
     def __eq__(self, other) -> bool:
         """
@@ -115,8 +114,8 @@ class GitRepo:
         if force:
             cmd.append('-f')
 
-        logger.debug(f"Running {' '.join(cmd)}")
-        logger.debug("Attempting to aquire checkout lock.")
+        self.logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug("Attempting to aquire checkout lock.")
         with self.get_checkout_lock():
             subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
@@ -138,7 +137,7 @@ class GitRepo:
 
         if hard:
             cmd.append('--hard')
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
     def __force_recursive_clean(self) -> None:
@@ -147,7 +146,7 @@ class GitRepo:
         removing untracked files and directories.
         """
         cmd = ['git', 'clean', '-xdff']
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
     def __remote_list(self) -> list[str]:
@@ -159,7 +158,7 @@ class GitRepo:
         """
         cmd = ['git', 'remote']
 
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         ret = subprocess.run(
             cmd, cwd=self.__local_path, shell=False, capture_output=True,
             encoding='utf-8', check=True
@@ -180,7 +179,7 @@ class GitRepo:
             raise ValueError("commit_ref is required, cannot be None.")
 
         cmd = ['git', 'diff-tree', commit_ref, '--no-commit-id', '--no-patch']
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         ret = subprocess.run(cmd, cwd=self.__local_path, shell=False)
         return ret.returncode == 0
 
@@ -202,7 +201,7 @@ class GitRepo:
             raise ValueError("url is required, cannot be None.")
 
         cmd = ['git', 'remote', 'set-url', remote, url]
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, check=True)
 
     def remote_get_url(self, remote: str) -> str:
@@ -222,7 +221,7 @@ class GitRepo:
             raise ValueError("remote is required, cannot be None.")
 
         cmd = ['git', 'remote', 'get-url', remote]
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
 
         # Capture the output of the command
         result = subprocess.run(
@@ -255,7 +254,9 @@ class GitRepo:
         if remote:
             cmd.append(remote)
         else:
-            logger.info("fetch_remote: remote is None, fetching all remotes")
+            self.logger.info(
+                "fetch_remote: remote is None, fetching all remotes"
+            )
             cmd.append('--all')
 
         if force:
@@ -272,7 +273,7 @@ class GitRepo:
         else:
             cmd.append('--no-recurse-submodules')
 
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False)
 
     def __branch_create(self, branch_name: str,
@@ -294,7 +295,7 @@ class GitRepo:
                 raise ex.CommitNotFoundError(commit_ref=start_point)
             cmd.append(start_point)
 
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
     def __branch_delete(self, branch_name: str, force: bool = False) -> None:
@@ -316,7 +317,7 @@ class GitRepo:
         if force:
             cmd.append('--force')
 
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
     def commit_id_for_remote_ref(self, remote: str,
@@ -358,7 +359,7 @@ class GitRepo:
 
         cmd = ['git', 'ls-remote', remote]
 
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         ret = subprocess.run(
             cmd, cwd=self.__local_path, encoding='utf-8', capture_output=True,
             shell=False, check=True
@@ -434,7 +435,9 @@ class GitRepo:
             CommitNotFoundError: If the specified commit cannot be found
         """
         if remote is None:
-            logger.error("remote cannot be None for checkout to remote commit")
+            self.logger.error(
+                "remote cannot be None for checkout to remote commit"
+            )
             raise ValueError("remote is required, cannot be None.")
 
         if remote not in self.__remote_list():
@@ -486,7 +489,7 @@ class GitRepo:
         if force:
             cmd.append('--force')
 
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
     def remote_add(self, remote: str, url: str) -> None:
@@ -513,7 +516,7 @@ class GitRepo:
 
         # Add the new remote
         cmd = ['git', 'remote', 'add', remote, url]
-        logger.debug(f"Running {' '.join(cmd)}")
+        self.logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, cwd=self.__local_path, shell=False, check=True)
 
     def remote_add_bulk(self, remotes: tuple, force: bool = False) -> None:
@@ -533,7 +536,7 @@ class GitRepo:
             DuplicateRemoteError: If remote already exists and
             overwrite is not allowed.
         """
-        logger.info(f"Remotes to add: {remotes}.")
+        self.logger.info(f"Remotes to add: {remotes}.")
         for (remote, url) in remotes:
             try:
                 self.remote_add(remote=remote, url=url)
@@ -541,9 +544,10 @@ class GitRepo:
                 if not force:
                     raise
 
+                logger = logging.getLogger(__name__)
                 logger.info(f"Remote {remote} already exists. Updating url.")
                 self.remote_set_url(remote=remote, url=url)
-            logger.info(f"Remote {remote} added to repo with url {url}.")
+            self.logger.info(f"Remote {remote} added to repo with url {url}.")
 
     @staticmethod
     def clone(source: str,
@@ -582,6 +586,7 @@ class GitRepo:
         if shallow_submodules:
             cmd.append('--shallow-submodules')
 
+        logger = logging.getLogger(__name__)
         logger.debug(f"Running {' '.join(cmd)}")
         subprocess.run(cmd, shell=False, check=True)
 
@@ -683,6 +688,7 @@ class GitRepo:
                 local_path=dest,
             )
         except FileNotFoundError:
+            logger = logging.getLogger(__name__)
             logger.info(f"No git repo found at {dest}. Creating.")
             # create parent directory if not present
             p = Path(dest)

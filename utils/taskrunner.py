@@ -2,8 +2,6 @@ import logging
 import threading
 import time
 
-logger = logging.getLogger(__name__)
-
 
 class TaskRunner:
     """
@@ -20,13 +18,14 @@ class TaskRunner:
         self.__tasks = tasks
         self.__stop_event = threading.Event()
         self.__thread = threading.Thread(target=self.__run, daemon=True)
+        self.logger = logging.getLogger(__name__)
 
     def start(self) -> None:
         """
         Start executing the tasks.
         """
-        logger.info("Started a task runner thread.")
-        logger.info(f"Tasks: {str(self.__tasks)}")
+        self.logger.info("Started a task runner thread.")
+        self.logger.info(f"Tasks: {str(self.__tasks)}")
         self.__thread.start()
 
     def __run(self) -> None:
@@ -42,7 +41,7 @@ class TaskRunner:
             for i, task in enumerate(self.__tasks):
                 to_call, period = task
                 if now >= next_call_times[i]:
-                    logger.debug(
+                    self.logger.debug(
                         f"Now: {now}, Calling: {str(to_call)}, "
                         f"Runner id: {id(self)}"
                     )
@@ -51,13 +50,13 @@ class TaskRunner:
                     try:
                         to_call()  # Call the method
                     except Exception as e:
-                        logger.exception(e)
+                        self.logger.exception(e)
 
                     next_call_times[i] = now + period
 
             # Wait for the next call or stop event
             earliest_next_call_time = min(next_call_times) - now
-            logger.debug(
+            self.logger.debug(
                 f"Time to next call: {earliest_next_call_time} sec, "
                 f"Runner id: {id(self)}"
             )
@@ -74,10 +73,10 @@ class TaskRunner:
         """
         Signal the thread to stop and wait for graceful exit.
         """
-        logger.debug(f"Firing stop event, Runner id: {id(self)}")
+        self.logger.debug(f"Firing stop event, Runner id: {id(self)}")
         self.__stop_event.set()
         if self.__thread.is_alive():
-            logger.debug(
+            self.logger.debug(
                 f"Waiting for the runner thread to terminate, "
                 f"Runner id: {id(self)}"
             )
