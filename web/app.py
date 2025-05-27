@@ -319,5 +319,38 @@ def get_deafults(vehicle_name, remote_name, commit_reference, board_name):
     # omit the last two elements as they are always blank
     return jsonify(result[:-2])
 
+@app.route('/builds', methods=['GET'])
+def get_all_builds():
+    all_build_ids = manager.get_all_build_ids()
+    all_build_info = [
+        manager.get_build_info(build_id).to_dict()
+        for build_id in all_build_ids
+    ]
+
+    all_build_info_sorted = sorted(
+        all_build_info,
+        key=lambda x: x['time_created'],
+    )
+
+    return (
+        jsonify(all_build_info_sorted),
+        200
+    )
+
+@app.route('/builds/<string:build_id>', methods=['GET'])
+def get_build_by_id(build_id):
+    if not manager.build_exists(build_id):
+        response = {
+            'error': f'build with id {build_id} does not exist.',
+        }
+        return jsonify(response), 200
+
+    return (
+        jsonify(
+            manager.get_build_info(build_id).to_dict()
+        ),
+        200
+    )
+
 if __name__ == '__main__':
     app.run()
