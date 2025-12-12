@@ -309,7 +309,7 @@ function fetchVehicles() {
     // following elemets will be blocked (disabled) when we make the request
     let elements_to_block = ['vehicle', 'version', 'board', 'submit', 'reset_def', 'exp_col_button'];
     enableDisableElementsById(elements_to_block, false);
-    let request_url = '/get_vehicles';
+    let request_url = '/vehicles';
     setSpinnerToDiv('vehicle_list', 'Fetching vehicles...');
     pending_update_calls += 1;
     sendAjaxRequestForJsonResponse(request_url)
@@ -341,7 +341,7 @@ function onVehicleChange(new_vehicle) {
     // following elemets will be blocked (disabled) when we make the request
     let elements_to_block = ['vehicle', 'version', 'board', 'submit', 'reset_def', 'exp_col_button'];
     enableDisableElementsById(elements_to_block, false);
-    let request_url = '/get_versions/'+new_vehicle;
+    let request_url = '/vehicles/'+new_vehicle+'/versions';
     setSpinnerToDiv('version_list', 'Fetching versions...');
     pending_update_calls += 1;
     sendAjaxRequestForJsonResponse(request_url)

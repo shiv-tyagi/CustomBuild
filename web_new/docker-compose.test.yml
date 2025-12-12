@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: custombuild-redis-test
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: web_new/Dockerfile
+    container_name: custombuild-api-test
+    ports:
+      - "8000:8000"
+    environment:
+      - CBS_REDIS_HOST=redis
+      - CBS_REDIS_PORT=6379
+      - CBS_BASEDIR=/app/base
+      - CBS_LOG_LEVEL=DEBUG
+    volumes:
+      - ../base:/app/base
+      - ../ap_git:/app/ap_git
+      - ../metadata_manager:/app/metadata_manager
+      - ../build_manager:/app/build_manager
+      - ../utils:/app/utils
+      - ./app:/app/web_new/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  redis_data:
