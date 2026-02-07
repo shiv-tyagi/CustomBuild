@@ -1,3 +1,6 @@
+# NOTE: This module is not currently used. The application uses slowapi
+# rate limiting middleware instead. See web/core/limiter.py.
+
 import redis
 import logging
 
