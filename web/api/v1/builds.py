@@ -10,13 +10,13 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse, PlainTextResponse
 
-from schemas import (
+from ...schemas import (
     BuildRequest,
     BuildSubmitResponse,
     BuildOut,
 )
-from services.builds import get_builds_service, BuildsService
-from core.limiter import limiter
+from ...services.builds import get_builds_service, BuildsService
+from ...core.limiter import limiter
 
 router = APIRouter(prefix="/builds", tags=["builds"])
 

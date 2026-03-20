@@ -13,7 +13,6 @@ from .admin import (
 # Build schemas
 from .builds import (
     BuildVersionInfo,
-    RemoteInfo,
     BuildProgress,
     BuildRequest,
     BuildSubmitResponse,
@@ -31,6 +30,7 @@ from .vehicles import (
     FeatureDefault,
     FeatureBase,
     FeatureOut,
+    RemoteInfo,
 )
 
 __all__ = [
@@ -38,7 +38,6 @@ __all__ = [
     "RefreshRemotesResponse",
     # Builds
     "BuildVersionInfo",
-    "RemoteInfo",
     "BuildProgress",
     "BuildRequest",
     "BuildSubmitResponse",
@@ -53,4 +52,5 @@ __all__ = [
     "FeatureDefault",
     "FeatureBase",
     "FeatureOut",
+    "RemoteInfo",
 ]
