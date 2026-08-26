@@ -1,0 +1,36 @@
+# Compose builds all images with context: . — this file is the only ignore Docker reads.
+
+# VCS / tooling
+.git
+.github
+.vagrant
+.direnv
+.pytest_cache
+.mypy_cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.tsbuildinfo
+
+# Secrets / env
+.env
+.envrc
+
+# Local data and virtualenvs
+base
+redis_data
+.venv
+venv
+
+# Frontend install/build artifacts (must not overlay Alpine npm ci)
+**/node_modules
+frontend/dist
+frontend/public/schemas
+
+# Not needed in any image
+tests
+scripts
+Vagrantfile
+examples
+*.md
+LICENSE
