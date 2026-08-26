@@ -7,10 +7,17 @@ RUN groupadd -g 999 ardupilot && \
     mkdir /workdir && \
     chown ardupilot:ardupilot /workdir
 
-COPY --chown=ardupilot:ardupilot . /app
+COPY builder/requirements.txt /app/builder/requirements.txt
+RUN pip install --no-cache-dir -r /app/builder/requirements.txt
+
+COPY --chown=ardupilot:ardupilot ap_git /app/ap_git
+COPY --chown=ardupilot:ardupilot build_config /app/build_config
+COPY --chown=ardupilot:ardupilot build_manager /app/build_manager
+COPY --chown=ardupilot:ardupilot builder /app/builder
+COPY --chown=ardupilot:ardupilot metadata_manager /app/metadata_manager
+COPY --chown=ardupilot:ardupilot utils /app/utils
+COPY --chown=ardupilot:ardupilot schemas /app/schemas
 
 WORKDIR /app
-RUN pip install --no-cache-dir -r ./builder/requirements.txt
-
 USER ardupilot
 CMD ["python", "-m", "builder"]
