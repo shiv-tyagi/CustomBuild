@@ -230,6 +230,7 @@ class TestBuildsAPI:
         for field in [
             "build_id", "vehicle", "board", "version",
             "selected_features", "progress", "time_created",
+            "artifact_available",
         ]:
             assert field in build
         assert "id" in build["vehicle"] and "name" in build["vehicle"]
@@ -317,6 +318,7 @@ class TestBuildsAPI:
         for field in [
             "build_id", "vehicle", "board", "version",
             "selected_features", "progress", "time_created",
+            "artifact_available",
         ]:
             assert field in data
 

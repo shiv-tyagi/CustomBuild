@@ -571,6 +571,40 @@ class TestBuildsService:
 
         assert result.selected_features == []
 
+    def test_get_build_artifact_available_when_archive_exists(
+        self,
+        service,
+        mock_build_manager,
+        tmp_path,
+    ):
+        """artifact_available is True when the archive is on disk."""
+        artifact = tmp_path / "artifact.tar.gz"
+        artifact.write_bytes(b"firmware")
+        mock_build_manager.build_exists.return_value = True
+        mock_build_manager.get_build_info.return_value = make_build_info(
+            state=bm.BuildState.SUCCESS,
+        )
+        mock_build_manager.get_build_archive_path.return_value = str(artifact)
+
+        result = service.get_build("build-abc123")
+
+        assert result.artifact_available is True
+
+    def test_get_build_artifact_unavailable_when_pending(
+        self,
+        service,
+        mock_build_manager,
+    ):
+        """artifact_available is False while the build is still running."""
+        mock_build_manager.build_exists.return_value = True
+        mock_build_manager.get_build_info.return_value = make_build_info(
+            state=bm.BuildState.PENDING,
+        )
+
+        result = service.get_build("build-abc123")
+
+        assert result.artifact_available is False
+
     # Tests for get_build_logs
 
     def test_get_build_logs_returns_none_when_build_not_found(
