@@ -76,3 +76,7 @@ class BuildOut(BaseModel):
     time_created: float = Field(
         ..., description="Unix timestamp when build was created"
     )
+    artifact_available: bool = Field(
+        False,
+        description="True when the build archive exists and can be downloaded",
+    )

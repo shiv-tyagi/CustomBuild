@@ -257,20 +257,7 @@ class BuildsService:
         if build_info is None:
             return None
 
-        # Return early if build is still ongoing
-        if build_info.progress.state in [
-            build_manager.BuildState.PENDING,
-            build_manager.BuildState.RUNNING,
-        ]:
-            return None
-
-        artifact_path = self.manager.get_build_archive_path(
-            build_id, build_info.vehicle_id, build_info.board
-        )
-        if os.path.exists(artifact_path):
-            return artifact_path
-
-        return None
+        return self._artifact_path_if_available(build_id, build_info)
 
     def get_build_config_yaml(self, build_id: str) -> Optional[tuple]:
         """
@@ -372,7 +359,30 @@ class BuildsService:
             selected_features=list(build_info.selected_features),
             progress=progress,
             time_created=build_info.time_created,
+            artifact_available=self._artifact_path_if_available(
+                build_id, build_info
+            ) is not None,
         )
+
+    def _artifact_path_if_available(
+        self,
+        build_id: str,
+        build_info,
+    ) -> Optional[str]:
+        """Return archive path if the build is finished and the file exists."""
+        if build_info.progress.state in [
+            build_manager.BuildState.PENDING,
+            build_manager.BuildState.RUNNING,
+        ]:
+            return None
+
+        artifact_path = self.manager.get_build_archive_path(
+            build_id, build_info.vehicle_id, build_info.board
+        )
+        if os.path.exists(artifact_path):
+            return artifact_path
+
+        return None
 
 
 def get_builds_service(request: Request) -> BuildsService:
